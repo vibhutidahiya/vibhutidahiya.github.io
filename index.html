@@ -226,8 +226,9 @@ a.cert:hover, a.cert:focus-visible { box-shadow: var(--shadow); }
 .contact-form { display: grid; gap: 1rem; max-width: 34rem; margin-bottom: 1.75rem; }
 .form-row { display: flex; flex-direction: column; gap: .4rem; }
 .form-row label { font: 600 .92rem var(--display); color: var(--ink); }
-.form-row input, .form-row textarea { font: 400 1rem var(--text); color: var(--ink); background: var(--paper); border: 1px solid rgba(35,40,72,.18); border-radius: .85rem; padding: .7rem .9rem; resize: vertical; }
-.form-row input:focus, .form-row textarea:focus { outline: 3px solid var(--accent); outline-offset: 1px; }
+.form-row input, .form-row textarea, .form-row select { font: 400 1rem var(--text); color: var(--ink); background: var(--paper); border: 1px solid rgba(35,40,72,.18); border-radius: .85rem; padding: .7rem .9rem; resize: vertical; }
+.form-row select { appearance: auto; }
+.form-row input:focus, .form-row textarea:focus, .form-row select:focus { outline: 3px solid var(--accent); outline-offset: 1px; }
 .contact-form .btn { justify-self: start; }
 .form-note { font: 500 .92rem var(--display); color: var(--ink-2); margin: 0; min-height: 1.3em; }
 .dl-note { font: 500 .92rem var(--display); color: var(--ink-2); margin: 1rem 0 0; min-height: 1.4em; }
@@ -603,6 +604,9 @@ footer a { color: var(--muted); }
       <p>If you’re hiring for GRC, IT audit, Privacy, or AI governance work, I’d like to hear from you.</p>
 
       <form class="contact-form" id="contact-form">
+        <input type="hidden" name="access_key" value="86e3cb52-2ed2-4858-aa18-d79dfefd3e7a">
+        <input type="hidden" name="subject" value="New message from your portfolio">
+        <input type="hidden" name="from_name" value="Portfolio contact form">
         <div class="form-row">
           <label for="cf-name">Name</label>
           <input id="cf-name" name="name" type="text" required autocomplete="name">
@@ -610,6 +614,16 @@ footer a { color: var(--muted); }
         <div class="form-row">
           <label for="cf-email">Your email</label>
           <input id="cf-email" name="email" type="email" required autocomplete="email">
+        </div>
+        <div class="form-row">
+          <label for="cf-regarding">What are you contacting regarding? (optional)</label>
+          <select id="cf-regarding" name="regarding">
+            <option value="">Select one</option>
+            <option value="Job opportunity">Job opportunity</option>
+            <option value="Volunteering">Volunteering</option>
+            <option value="Research">Research</option>
+            <option value="Something else">Something else</option>
+          </select>
         </div>
         <div class="form-row">
           <label for="cf-message">Message</label>
@@ -880,20 +894,35 @@ footer a { color: var(--muted); }
   }
 
   /* Contact form */
-  var CONTACT_ADDRESS = "vibhuti.dahiya9300@gmail.com";
   var cform = document.getElementById("contact-form");
   if (cform) {
     cform.addEventListener("submit", function (e) {
       e.preventDefault();
-      var name = document.getElementById("cf-name").value.trim();
-      var from = document.getElementById("cf-email").value.trim();
-      var msg = document.getElementById("cf-message").value.trim();
-      var subject = "Portfolio contact from " + name;
-      var body = msg + "\n\n— " + name + " (" + from + ")";
-      var link = "mailto:" + CONTACT_ADDRESS + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
-      window.location.href = link;
       var note = document.getElementById("cf-note");
-      if (note) note.textContent = "Opening your email app to send this.";
+      var btn = cform.querySelector("button[type=submit]");
+      if (btn) btn.disabled = true;
+      if (note) note.textContent = "Sending…";
+
+      fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(Object.fromEntries(new FormData(cform)))
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.success) {
+            if (note) note.textContent = "Message sent — thanks, I'll get back to you soon.";
+            cform.reset();
+          } else {
+            if (note) note.textContent = "Something went wrong. Please try again or email me directly.";
+          }
+        })
+        .catch(function () {
+          if (note) note.textContent = "Something went wrong. Please try again or email me directly.";
+        })
+        .finally(function () {
+          if (btn) btn.disabled = false;
+        });
     });
   }
 
